@@ -1,0 +1,19 @@
+<!DOCTYPE html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pemilihan Ketua OSIS PMA 2027–2028</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;800&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css"></head><body>
+<div id="warn" class="warn" hidden>⚠ Backend belum dikonfigurasi — voting online BELUM siap untuk pemilihan resmi. Lihat README.md.</div>
+<header class="top"><b>PESANTREN MODERN AT TAQWA</b><nav><a href="#kandidat">Kandidat</a><a href="#hasil">Hasil</a></nav></header>
+<section class="hero"><p class="inst">PESANTREN MODERN AT TAQWA</p><h1>PEMILIHAN KETUA OSIS PMA 2027–2028</h1>
+<p class="sub">“Suaramu Menentukan Masa Depan Organisasi!”</p>
+<p>Kenali kandidat, pertimbangkan visi dan misinya, lalu berikan suaramu untuk memilih pemimpin OSIS periode 2027–2028.</p>
+<a class="btn" href="#kandidat">LIHAT KANDIDAT</a><div id="status" class="pill"></div></section>
+<section id="kandidat"><h2>Kandidat Ketua OSIS</h2><div id="cards" class="grid"></div></section>
+<section id="hasil"><h2>HASIL VOTING SEMENTARA</h2><span class="pill">HASIL SEMENTARA</span><div id="res"></div></section>
+<section class="close"><h2>SATU SUARA, SATU HARAPAN, SATU MASA DEPAN.</h2><p>“Pilihlah dengan bijak, dukung dengan tanggung jawab, dan jadilah bagian dari perubahan positif di Pesantren Modern At Taqwa.”</p></section>
+<footer><b>PEMILIHAN KETUA OSIS PMA 2027–2028</b><br>Pesantren Modern At Taqwa</footer>
+<div id="modal" class="modal" hidden><div class="box"><h3 id="mq"></h3><label>Kode pemilih<input id="code" autocomplete="off" placeholder="Masukkan kode dari panitia"></label><p id="msg" class="err"></p>
+<button class="btn" id="yes">YA, PILIH KANDIDAT INI</button> <button class="btn ghost" id="no">BATAL</button></div></div>
+<div id="toast" class="toast" hidden></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script><script src="script.js"></script></body></html>

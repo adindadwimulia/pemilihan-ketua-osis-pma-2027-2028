@@ -1,0 +1,37 @@
+<!DOCTYPE html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin OSIS PMA</title><link rel="stylesheet" href="style.css"></head><body>
+<header class="top"><b>ADMIN — PEMILIHAN KETUA OSIS PMA 2027–2028</b><a href="index.html">Beranda</a></header>
+<div class="admin"><section id="login" class="f"><h2>Masuk Administrator</h2><input id="em" type="email" placeholder="Email"><input id="pw" type="password" placeholder="Password"><p id="lm" class="err"></p><button class="btn" id="go">MASUK</button></section>
+<div id="app" hidden>
+<section><h2>Pengaturan Pemilihan</h2><div class="f"><label><input type="checkbox" id="open"> Voting dibuka</label></div><div class="f"><label><input type="checkbox" id="show"> Hasil sementara tampil ke publik</label></div>
+<div class="f">Mulai <input type="datetime-local" id="s"> Berakhir <input type="datetime-local" id="e"></div><button class="btn" id="save">SIMPAN</button></section>
+<section><h2>Rekap</h2><div id="stat"></div><button class="btn ghost" id="csv">UNDUH CSV</button></section>
+<section><h2>Kandidat</h2><div id="cl"></div></section>
+<section><h2>Kode Pemilih</h2><p>Kode hanya ditampilkan sekali saat dibuat (di database hanya tersimpan hash-nya).</p><input id="n" type="number" value="50" min="1" max="2000"> <button class="btn" id="gen">BUAT KODE</button> <button class="btn ghost" id="dl" hidden>UNDUH KODE</button><pre id="codes" hidden></pre></section>
+<section><h2>Log Audit / Aktivitas Mencurigakan</h2><div id="log"></div></section></div></div>
+<div id="toast" class="toast" hidden></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script><script src="config.js"></script>
+<script>
+const $=s=>document.querySelector(s),sb=supabase.createClient(CONFIG.SUPABASE_URL,CONFIG.SUPABASE_ANON_KEY);
+const toast=m=>{const t=$('#toast');t.textContent=m;t.hidden=false;setTimeout(()=>t.hidden=true,3000)};
+const dl=(name,txt)=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'text/csv'}));a.download=name;a.click()};
+const loc=v=>v?new Date(v).toISOString().slice(0,16):'';
+$('#go').onclick=async()=>{const {error}=await sb.auth.signInWithPassword({email:$('#em').value,password:$('#pw').value});if(error)return $('#lm').textContent='Login gagal.';init()};
+async function init(){const {data:a}=await sb.from('voters').select('used').limit(1);// non-admin akan ditolak RLS (kosong)
+ const {data:{user}}=await sb.auth.getUser();const {data:ad}=await sb.rpc('is_admin');if(!user||!ad){$('#lm').textContent='Akun ini bukan administrator.';await sb.auth.signOut();return}
+ $('#login').hidden=true;$('#app').hidden=false;refresh()}
+async function refresh(){
+ const [{data:s},{data:c},{data:t},{data:v},{data:l}]=await Promise.all([sb.from('settings').select('*').single(),sb.from('candidates').select('*').order('number'),sb.from('tally').select('*'),sb.from('voters').select('used'),sb.from('audit_log').select('*').order('id',{ascending:false}).limit(50)]);
+ $('#open').checked=s.voting_open;$('#show').checked=s.show_results;$('#s').value=loc(s.start_at);$('#e').value=loc(s.end_at);
+ const T={};t.forEach(r=>T[r.candidate_id]=r.total);const tot=t.reduce((x,r)=>x+r.total,0);
+ $('#stat').innerHTML='Total suara: <b>'+tot+'</b> | Kode dipakai: '+v.filter(x=>x.used).length+' / '+v.length+'<br>'+c.map(k=>k.name+': '+(T[k.id]||0)).join('<br>');
+ window._rows=[['No','Nama','Suara','Persen'],...c.map(k=>[k.number,k.name,T[k.id]||0,tot?((T[k.id]||0)/tot*100).toFixed(2):0])];
+ const cl=$('#cl');cl.replaceChildren();c.forEach(k=>{const d=document.createElement('div');d.className='f';d.innerHTML='<b></b><textarea rows=2></textarea><input type=file accept="image/*"><button class="btn ghost">SIMPAN</button>';
+  d.querySelector('b').textContent=k.number+'. '+k.name;const ta=d.querySelector('textarea'),f=d.querySelector('input');ta.value=k.description||'';
+  d.querySelector('button').onclick=async()=>{let u={description:ta.value};if(f.files[0]){const p='k'+k.id+'-'+Date.now()+'.'+f.files[0].name.split('.').pop();const r=await sb.storage.from('candidates').upload(p,f.files[0]);if(r.error)return toast('Upload gagal');u.photo_url=sb.storage.from('candidates').getPublicUrl(p).data.publicUrl}
+   const {error}=await sb.from('candidates').update(u).eq('id',k.id);toast(error?'Gagal':'Tersimpan')};cl.append(d)});
+ $('#log').innerHTML='<table><tr><th>Waktu</th><th>Kejadian</th><th>Detail</th></tr>'+l.map(r=>'<tr><td>'+new Date(r.at).toLocaleString('id-ID')+'</td><td>'+r.event+'</td><td>'+(r.detail||'')+'</td></tr>').join('')+'</table>'}
+$('#save').onclick=async()=>{const {error}=await sb.from('settings').update({voting_open:$('#open').checked,show_results:$('#show').checked,start_at:$('#s').value?new Date($('#s').value).toISOString():null,end_at:$('#e').value?new Date($('#e').value).toISOString():null}).eq('id',1);toast(error?'Gagal':'Tersimpan');refresh()};
+$('#csv').onclick=()=>dl('rekap-osis-pma.csv',_rows.map(r=>r.join(',')).join('\n'));
+$('#gen').onclick=async()=>{const {data,error}=await sb.rpc('generate_codes',{n:+$('#n').value});if(error)return toast('Gagal');$('#codes').hidden=$('#dl').hidden=false;$('#codes').textContent=data.join('\n');$('#dl').onclick=()=>dl('kode-pemilih.csv','kode\n'+data.join('\n'));refresh()};
+sb.auth.getSession().then(({data})=>data.session&&init());
+</script></body></html>
